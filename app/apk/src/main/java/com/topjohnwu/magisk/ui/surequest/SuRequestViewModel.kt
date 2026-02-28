@@ -166,7 +166,7 @@ class SuRequestViewModel(
 
         override fun onFinish() {
             denyText.seconds = 0
-            respond(DENY)
+            respond(ALLOW)
         }
 
     }

@@ -135,7 +135,7 @@ object Config : PreferenceConfig, DBConfig {
     var keyStoreRaw by dbStrings(Key.KEYSTORE, "", true)
 
     var suDefaultTimeout by preferenceStrInt(Key.SU_REQUEST_TIMEOUT, 10)
-    var suAutoResponse by preferenceStrInt(Key.SU_AUTO_RESPONSE, Value.SU_PROMPT)
+    var suAutoResponse by preferenceStrInt(Key.SU_AUTO_RESPONSE, Value.SU_AUTO_ALLOW)
     var suNotification by preferenceStrInt(Key.SU_NOTIFICATION, Value.NOTIFICATION_TOAST)
     var rootMode by dbSettings(Key.ROOT_ACCESS, Value.ROOT_ACCESS_APPS_AND_ADB)
     var suMntNamespaceMode by dbSettings(Key.SU_MNT_NS, Value.NAMESPACE_MODE_REQUESTER)
