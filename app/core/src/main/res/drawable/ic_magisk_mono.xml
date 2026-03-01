@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
-    android:src="@drawable/lbrdc_mono"
-    android:gravity="center" />
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <inset
+            android:drawable="@drawable/lbrdc_mono"
+            android:inset="18%" />
+    </item>
+</layer-list>
