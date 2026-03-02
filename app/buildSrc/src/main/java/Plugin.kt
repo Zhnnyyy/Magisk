@@ -28,6 +28,7 @@ object Config {
     val version: String get() = get("version") ?: commitHash
     val versionCode: Int get() = get("magisk.versionCode")!!.toInt()
     val stubVersion: String get() = get("magisk.stubVersion")!!
+    val stubApkUrl: String? get() = get("magisk.stubApkUrl")
     val abiList: Set<String> get() {
         val abiList = get("abiList") ?: return defaultAbis
         return abiList.split(Regex("\\s*,\\s*")).toSet() intersect supportAbis

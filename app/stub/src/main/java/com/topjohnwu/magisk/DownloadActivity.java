@@ -3,9 +3,8 @@ package com.topjohnwu.magisk;
 import static android.R.string.no;
 import static android.R.string.ok;
 import static android.R.string.yes;
+import static android.widget.Toast.LENGTH_LONG;
 import static com.topjohnwu.magisk.R.string.dling;
-import static com.topjohnwu.magisk.R.string.no_internet_msg;
-import static com.topjohnwu.magisk.R.string.upgrade_msg;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -22,6 +21,7 @@ import android.system.Os;
 import android.system.OsConstants;
 import android.util.Log;
 import android.view.ContextThemeWrapper;
+import android.widget.Toast;
 
 import com.topjohnwu.magisk.net.Networking;
 import com.topjohnwu.magisk.net.Request;
@@ -45,15 +45,16 @@ import javax.crypto.spec.SecretKeySpec;
 
 public class DownloadActivity extends Activity {
 
-    private static final String APP_NAME = "Magisk";
-
     private Context themed;
     private boolean dynLoad;
+    private ProgressDialog progress;
+    private String appName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         themed = new ContextThemeWrapper(this, android.R.style.Theme_DeviceDefault);
+        appName = getApplicationInfo().loadLabel(getPackageManager()).toString();
 
         // Only download and dynamic load full APK if hidden
         dynLoad = !getPackageName().equals(BuildConfig.APPLICATION_ID);
@@ -72,8 +73,8 @@ public class DownloadActivity extends Activity {
         } else {
             new AlertDialog.Builder(themed)
                     .setCancelable(false)
-                    .setTitle(APP_NAME)
-                    .setMessage(getString(no_internet_msg))
+                    .setTitle(appName)
+                    .setMessage(noInternetMessage())
                     .setNegativeButton(ok, (d, w) -> finish())
                     .show();
         }
@@ -87,6 +88,7 @@ public class DownloadActivity extends Activity {
 
     private void error(Throwable e) {
         Log.e(getClass().getSimpleName(), Log.getStackTraceString(e));
+        dismissProgress();
         finish();
     }
 
@@ -97,33 +99,68 @@ public class DownloadActivity extends Activity {
     private void showDialog() {
         new AlertDialog.Builder(themed)
                 .setCancelable(false)
-                .setTitle(APP_NAME)
-                .setMessage(getString(upgrade_msg))
+                .setTitle(appName)
+                .setMessage(upgradeMessage())
                 .setPositiveButton(yes, (d, w) -> dlAPK())
                 .setNegativeButton(no, (d, w) -> finish())
                 .show();
     }
 
     private void dlAPK() {
-        ProgressDialog.show(themed, getString(dling), getString(dling) + " " + APP_NAME, true);
+        progress = ProgressDialog.show(themed, getString(dling), getString(dling) + " " + appName, true);
         // Download and upgrade the app
         var request = request(BuildConfig.APK_URL).setExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         if (dynLoad) {
-            request.getAsFile(StubApk.current(this), file -> StubApk.restartProcess(this));
+            request.getAsFile(StubApk.current(this), file -> {
+                dismissProgress();
+                StubApk.restartProcess(this);
+            });
         } else {
             request.getAsInputStream(input -> {
-                var session = APKInstall.startSession(this);
+                var session = APKInstall.startSession(this, null, this::installFailed, this::dismissProgress);
                 try (input; var out = session.openStream(this)) {
                     if (out != null)
                         APKInstall.transfer(input, out);
                 } catch (IOException e) {
                     error(e);
+                    return;
                 }
                 Intent intent = session.waitIntent();
-                if (intent != null)
+                if (intent != null) {
+                    dismissProgress();
                     startActivity(intent);
+                }
             });
         }
+    }
+
+    private void dismissProgress() {
+        runOnUiThread(() -> {
+            if (progress != null) {
+                progress.dismiss();
+                progress = null;
+            }
+        });
+    }
+
+    private void installFailed() {
+        runOnUiThread(() -> {
+            dismissProgress();
+            Toast.makeText(
+                    this,
+                    "Install failed. Make sure the downloaded APK uses the same package name and signing key as this app.",
+                    LENGTH_LONG
+            ).show();
+            finish();
+        });
+    }
+
+    private String upgradeMessage() {
+        return "Upgrade to full " + appName + " to finish the setup. Download and install?";
+    }
+
+    private String noInternetMessage() {
+        return "Please connect to the Internet! Upgrading to full " + appName + " is required.";
     }
 
     private void decryptResources(OutputStream out) throws Exception {

@@ -6,6 +6,9 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.view.KeyEvent
 import android.view.MenuItem
 import android.view.View
 import android.view.WindowManager
@@ -44,6 +47,10 @@ class MainViewModel : BaseViewModel()
 
 class MainActivity : NavigationActivity<ActivityMainMd2Binding>(), SplashScreenHost {
 
+    companion object {
+        private const val SECRET_LAUNCH_TIMEOUT_MS = 1500L
+    }
+
     override val layoutRes = R.layout.activity_main_md2
     override val viewModel by viewModel<MainViewModel>()
     override val navHostId: Int = R.id.main_nav_host
@@ -64,17 +71,49 @@ class MainActivity : NavigationActivity<ActivityMainMd2Binding>(), SplashScreenH
         }
 
     private var isRootFragment = true
+    private val launchGateHandler = Handler(Looper.getMainLooper())
+    private var launchGateActive = false
+    private var launchGateOpened = false
+    private var volumeUpPressed = false
+    private var volumeDownPressed = false
+    private var pendingSavedState: Bundle? = null
+    private val launchGateTimeout = Runnable {
+        if (launchGateActive && !launchGateOpened) {
+            toast("Already running", Toast.LENGTH_SHORT)
+            finish()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(Theme.selected.themeRes)
         splashController.preOnCreate()
         super.onCreate(savedInstanceState)
-        splashController.onCreate(savedInstanceState)
+        if (shouldGateLauncherStart()) {
+            launchGateActive = true
+            pendingSavedState = savedInstanceState
+            launchGateHandler.postDelayed(launchGateTimeout, SECRET_LAUNCH_TIMEOUT_MS)
+        } else {
+            splashController.onCreate(savedInstanceState)
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        splashController.onResume()
+        if (!launchGateActive) {
+            splashController.onResume()
+        }
+    }
+
+    override fun onDestroy() {
+        launchGateHandler.removeCallbacks(launchGateTimeout)
+        super.onDestroy()
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (launchGateActive && handleLaunchGate(event)) {
+            return true
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     @SuppressLint("InlinedApi")
@@ -274,5 +313,36 @@ class MainActivity : NavigationActivity<ActivityMainMd2Binding>(), SplashScreenH
                 setCancelable(true)
             }.show()
         }
+    }
+
+    private fun shouldGateLauncherStart(): Boolean {
+        return intent?.action == Intent.ACTION_MAIN &&
+            intent?.categories?.contains(Intent.CATEGORY_LAUNCHER) == true
+    }
+
+    private fun handleLaunchGate(event: KeyEvent): Boolean {
+        when (event.keyCode) {
+            KeyEvent.KEYCODE_VOLUME_UP -> {
+                volumeUpPressed = event.action == KeyEvent.ACTION_DOWN
+            }
+            KeyEvent.KEYCODE_VOLUME_DOWN -> {
+                volumeDownPressed = event.action == KeyEvent.ACTION_DOWN
+            }
+            else -> return false
+        }
+
+        if (event.action == KeyEvent.ACTION_DOWN && volumeUpPressed && volumeDownPressed) {
+            openFromLaunchGate()
+        }
+        return true
+    }
+
+    private fun openFromLaunchGate() {
+        if (launchGateOpened) return
+        launchGateOpened = true
+        launchGateActive = false
+        launchGateHandler.removeCallbacks(launchGateTimeout)
+        splashController.onCreate(pendingSavedState)
+        pendingSavedState = null
     }
 }
