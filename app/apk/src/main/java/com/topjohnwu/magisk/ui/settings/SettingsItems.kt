@@ -310,12 +310,6 @@ object RequestTimeout : BaseSettingsItem.Selector() {
         }
 }
 
-object SUNotification : BaseSettingsItem.Selector() {
-    override val title = CoreR.string.superuser_notification.asText()
-    override val entryRes = CoreR.array.su_notification
-    override var value by Config::suNotification
-}
-
 object Reauthenticate : BaseSettingsItem.Toggle() {
     override val title = CoreR.string.settings_su_reauth_title.asText()
     override val description = CoreR.string.settings_su_reauth_summary.asText()

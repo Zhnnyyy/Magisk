@@ -2,14 +2,10 @@ package com.topjohnwu.magisk.core.su
 
 import android.content.Context
 import android.os.Bundle
-import android.widget.Toast
 import com.topjohnwu.magisk.core.BuildConfig
-import com.topjohnwu.magisk.core.Config
-import com.topjohnwu.magisk.core.R
 import com.topjohnwu.magisk.core.di.ServiceLocator
 import com.topjohnwu.magisk.core.ktx.getLabel
 import com.topjohnwu.magisk.core.ktx.getPackageInfo
-import com.topjohnwu.magisk.core.ktx.toast
 import com.topjohnwu.magisk.core.model.su.SuPolicy
 import com.topjohnwu.magisk.core.model.su.createSuLog
 import kotlinx.coroutines.runBlocking
@@ -89,14 +85,6 @@ object SuCallbackHandler {
         notify(context, policy >= SuPolicy.ALLOW, appName)
     }
 
-    private fun notify(context: Context, granted: Boolean, appName: String) {
-        if (Config.suNotification == Config.Value.NOTIFICATION_TOAST) {
-            val resId = if (granted)
-                R.string.su_allow_toast
-            else
-                R.string.su_deny_toast
-
-            context.toast(context.getString(resId, appName), Toast.LENGTH_SHORT)
-        }
-    }
+    @Suppress("UNUSED_PARAMETER")
+    private fun notify(context: Context, granted: Boolean, appName: String) = Unit
 }

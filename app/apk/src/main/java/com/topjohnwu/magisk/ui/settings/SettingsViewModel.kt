@@ -73,7 +73,7 @@ class SettingsViewModel : BaseViewModel(), BaseSettingsItem.Handler {
             list.addAll(listOf(
                 Superuser,
                 Tapjack, Authentication, AccessMode, MultiuserMode, MountNamespaceMode,
-                AutomaticResponse, RequestTimeout, SUNotification
+                AutomaticResponse, RequestTimeout
             ))
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
                 // Re-authenticate is not feasible on 8.0+
